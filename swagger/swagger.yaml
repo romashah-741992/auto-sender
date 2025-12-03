@@ -1,0 +1,120 @@
+basePath: /
+definitions:
+  http.SchedulerRequest:
+    properties:
+      action:
+        description: '"start" or "stop"'
+        type: string
+    type: object
+  http.httpError:
+    properties:
+      error:
+        type: string
+    type: object
+  http.schedulerResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  messages.Message:
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      externalMessageId:
+        type: string
+      id:
+        type: integer
+      recipient:
+        type: string
+      sentAt:
+        type: string
+      status:
+        $ref: '#/definitions/messages.Status'
+      updatedAt:
+        type: string
+    type: object
+  messages.Status:
+    enum:
+    - pending
+    - sent
+    - failed
+    type: string
+    x-enum-varnames:
+    - StatusPending
+    - StatusSent
+    - StatusFailed
+info:
+  contact: {}
+  description: Automatic message sending system. Sends up to 2 pending messages every
+    2 minutes.
+  title: Auto Sender API
+  version: "1.0"
+paths:
+  /messages/sent:
+    get:
+      description: Returns messages with status=sent, ordered by sent time.
+      parameters:
+      - default: 50
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/messages.Message'
+            type: array
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/http.httpError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.httpError'
+      summary: List sent messages
+      tags:
+      - messages
+  /scheduler:
+    post:
+      consumes:
+      - application/json
+      description: Controls the background scheduler that sends up to 2 pending messages
+        every 2 minutes.
+      parameters:
+      - description: Scheduler action (start|stop)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/http.SchedulerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.schedulerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.httpError'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/http.httpError'
+      summary: Start or stop automatic message sending
+      tags:
+      - scheduler
+swagger: "2.0"

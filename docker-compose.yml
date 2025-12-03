@@ -1,0 +1,54 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: auto-sender-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: auto_sender
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppass
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: auto-sender-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  app:
+    build: .
+    container_name: auto-sender-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: "8080"
+      DB_DSN: "appuser:apppass@tcp(db:3306)/auto_sender?parseTime=true&loc=UTC"
+      REDIS_ADDR: "redis:6379"
+      WEBHOOK_URL: "https://webhook.site/cbd59d2f-88e9-4068-8774-aa3dce545e39"
+      WEBHOOK_AUTH_KEY: "INS.me1x9uMcyYGlhKKQVPoc.bO3j9aZwRTOcA2Ywo"
+    ports:
+      - "8080:8080"
+
+volumes:
+  db_data:
